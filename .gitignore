@@ -3,3 +3,11 @@ build
 tags
 .editorconfig
 .DS_Store
+*.log
+*.exe
+*~
+*.swp
+.idea/
+cmake-build-debug/
+build/
+
