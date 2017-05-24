@@ -50,7 +50,6 @@ int main() {
   // coordinates.
     auto cfs = polyfit(xvals,yvals,3);
   for (double x = 0; x <= 20; x += 1.0) {
-    // TODO: use `polyeval` to evaluate the x values.
 
     std::cout << polyeval(cfs, x) << std::endl;
   }
