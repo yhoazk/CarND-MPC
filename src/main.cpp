@@ -98,9 +98,13 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
+          Eigen::VectorXd state;
+          Eigen::VectorXd coeffs;
+          auto act =  mpc.Solve(state, coeffs);
           double steer_value;
           double throttle_value;
-
+          steer_value = act[0];
+          throttle_value = act[1];
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
