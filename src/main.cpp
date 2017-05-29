@@ -132,8 +132,8 @@ int main()
 
 
           json msgJson;
-          msgJson["steering_angle"] = -act[6];
-          msgJson["throttle"] = act[7];
+          msgJson["steering_angle"] = -act[0];
+          msgJson["throttle"] = act[1];
 
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals = ptsx;

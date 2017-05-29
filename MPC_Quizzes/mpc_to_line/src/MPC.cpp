@@ -382,7 +382,7 @@ int main() {
   plt::plot(delta_vals);
   plt::subplot(3, 1, 3);
   plt::title("Velocity");
-  plt::plot(v_vals);
+  plt::plot(a_vals);
   plt::grid("on");
   plt::show();
 }

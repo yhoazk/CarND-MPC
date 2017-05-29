@@ -6,7 +6,7 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 20;
+size_t N = 12;
 double dt = 0.05;
 
 // The solver takes all the state variables and actuator
@@ -143,7 +143,7 @@ class FG_eval {
 MPC::MPC() {}
 MPC::~MPC() {}
 
-
+/* Translate the map coords to car coordinates */
 bool MPC::coord_transform(vector<double_t>& map_x,vector<double_t> map_y, double_t veh_x, double_t veh_y, double_t veh_th)
 {
   vector<double_t> t_x;
@@ -174,7 +174,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   double_t cte  = state[4];
   double_t epsi = state[5];
   double_t dt = 0.1;
-  double_t delta_t1;
+  static  double_t delta_t1 = 0;
+  static double_t a_t1 = 0;
 
 
 
@@ -198,7 +199,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   double_t x_t = x + v * CppAD::cos(psi)*dt;
   double_t y_t = y + v * CppAD::sin(psi)*dt;
   double_t psi_t = psi + (v/Lf * (delta_t1 * dt));
-  double_t v_t = v + (delta_t1 * dt);
+  double_t v_t = v + (a_t1 * dt);
   double_t cte_t = cte + v * sin(epsi) * dt;
   double_t epsi_t = epsi + v/Lf * (delta_t1 * dt);
 
@@ -312,16 +313,10 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-/*
-  for (int i = 0; i < N; i++){
-    mpc_x.push_back(solution.x[x_start + i]);
-    mpc_y.push_back(solution.x[y_start + i]);
-  }*/
-  const int skip_state_num = 0;
 
-  return {solution.x[x_start + 1+ skip_state_num],   solution.x[y_start + 1 + skip_state_num],
-          solution.x[psi_start + 1+ skip_state_num], solution.x[v_start + 1+ skip_state_num],
-          solution.x[cte_start + 1+ skip_state_num], solution.x[epsi_start + 1+ skip_state_num],
-          solution.x[delta_start+ skip_state_num],   solution.x[a_start+ skip_state_num]};
+  return {/*solution.x[x_start + 1 ],   solution.x[y_start + 1 ],
+          solution.x[psi_start + 1], solution.x[v_start + 1],
+          solution.x[cte_start + 1], solution.x[epsi_start + 1],*/
+          solution.x[delta_start],   solution.x[a_start]};
 
 }
