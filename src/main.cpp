@@ -65,53 +65,79 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
-int main() {
+int main()
+{
   uWS::Hub h;
 
   // MPC is initialized here!
   MPC mpc;
 
-  h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                     uWS::OpCode opCode) {
+  h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
+  {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     string sdata = string(data).substr(0, length);
     cout << sdata << endl;
-    if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') {
+    if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2')
+    {
       string s = hasData(sdata);
       if (s != "") {
         auto j = json::parse(s);
         string event = j[0].get<string>();
         if (event == "telemetry") {
           // j[1] is the data JSON object
-          vector<double> ptsx = j[1]["ptsx"];
+          vector<double> ptsx = j[1]["ptsx"]; // What are this?
           vector<double> ptsy = j[1]["ptsy"];
           double px = j[1]["x"];
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
-
+          std::cout << "px: " << px;
           /*
-          * TODO: Calculate steeering angle and throttle using MPC.
+          * TODO: Calculate steering angle and throttle using MPC.
           *
           * Both are in between [-1, 1].
           *
           */
-          Eigen::VectorXd state;
+
+          Eigen::VectorXd state(mpc.N_STATES);
           Eigen::VectorXd coeffs;
+          Eigen::VectorXd eigen_ptsx(ptsx.size());
+          Eigen::VectorXd eigen_ptsy(ptsy.size());
+
+          /* The points are feed in map coords, transform them into car coords */
+          mpc.coord_transform(ptsx, ptsy, px, py, psi);
+          //assert(1 == 0);
+          // TODO: There must be a better way to initialize
+          for (int i = 0; i < ptsx.size(); ++i)
+          {
+            eigen_ptsx[i] = ptsx[i];
+            eigen_ptsy[i] = ptsy[i];
+          }
+          /* find the coefs that fit a 3rd order poly */
+          coeffs = polyfit(eigen_ptsx, eigen_ptsy, 3);
+          /* Evaluate the newly created poly */
+          for (int i = 0; i < ptsx.size(); ++i)
+          {
+            ptsy[i] = polyeval(coeffs, ptsx[i]);
+          }
+
+          double cte = polyeval(coeffs, 0);
+          double epsi = 0.0f - atan(double(coeffs[1]));
+
+          state << 0,0,0, v,cte,epsi;
+
           auto act =  mpc.Solve(state, coeffs);
-          double steer_value;
-          double throttle_value;
-          steer_value = act[0];
-          throttle_value = act[1];
+
+
           json msgJson;
-          msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = throttle_value;
+          msgJson["steering_angle"] = -act[6];
+          msgJson["throttle"] = act[7];
 
           //Display the MPC predicted trajectory 
-          vector<double> mpc_x_vals;
-          vector<double> mpc_y_vals;
+          vector<double> mpc_x_vals = ptsx;
+          vector<double> mpc_y_vals = ptsy;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
@@ -120,8 +146,8 @@ int main() {
           msgJson["mpc_y"] = mpc_y_vals;
 
           //Display the waypoints/reference line
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
+          vector<double> next_x_vals = ptsx;
+          vector<double> next_y_vals = ptsy;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
@@ -144,7 +170,9 @@ int main() {
           this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
-      } else {
+      }
+      else
+      {
         // Manual driving
         std::string msg = "42[\"manual\",{}]";
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
@@ -155,8 +183,8 @@ int main() {
   // We don't need this since we're not using HTTP but if it's removed the
   // program
   // doesn't compile :-(
-  h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data,
-                     size_t, size_t) {
+  h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data, size_t, size_t)
+  {
     const std::string s = "<h1>Hello world!</h1>";
     if (req.getUrl().valueLength == 1) {
       res->end(s.data(), s.length());
@@ -166,20 +194,23 @@ int main() {
     }
   });
 
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req)
+  {
     std::cout << "Connected!!!" << std::endl;
   });
 
-  h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
-                         char *message, size_t length) {
+  h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code, char *message, size_t length)
+  {
     ws.close();
     std::cout << "Disconnected" << std::endl;
   });
 
   int port = 4567;
-  if (h.listen(port)) {
+  if (h.listen(port))
+  {
     std::cout << "Listening to port " << port << std::endl;
-  } else {
+  } else
+  {
     std::cerr << "Failed to listen to port" << std::endl;
     return -1;
   }

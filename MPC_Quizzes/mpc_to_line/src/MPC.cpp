@@ -37,14 +37,14 @@ double ref_v = 40;
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
 // when one variable starts and another ends to make our lifes easier.
-size_t x_start = 0;
-size_t y_start = x_start + N;
-size_t psi_start = y_start + N;
-size_t v_start = psi_start + N;
-size_t cte_start = v_start + N;
-size_t epsi_start = cte_start + N;
-size_t delta_start = epsi_start + N;
-size_t a_start = delta_start + N - 1;
+const size_t x_start = 0;
+const size_t y_start = x_start + N;
+const size_t psi_start = y_start + N;
+const size_t v_start = psi_start + N;
+const size_t cte_start = v_start + N;
+const size_t epsi_start = cte_start + N;
+const size_t delta_start = epsi_start + N;
+const size_t a_start = delta_start + N - 1;
 
 class FG_eval {
  public:
@@ -61,20 +61,23 @@ class FG_eval {
     fg[0] = 0;
 
     // The part of the cost based on the reference state.
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++)
+    {
       fg[0] += CppAD::pow(vars[cte_start + i] - ref_cte, 2);
       fg[0] += CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
       fg[0] += CppAD::pow(vars[v_start + i] - ref_v, 2);
     }
 
     // Minimize the use of actuators.
-    for (int i = 0; i < N - 1; i++) {
+    for (int i = 0; i < N - 1; i++)
+    {
       fg[0] += CppAD::pow(vars[delta_start + i], 2);
       fg[0] += CppAD::pow(vars[a_start + i], 2);
     }
 
     // Minimize the value gap between sequential actuations.
-    for (int i = 0; i < N - 2; i++) {
+    for (int i = 0; i < N - 2; i++)
+    {
       fg[0] += CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
       fg[0] += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
     }
@@ -170,15 +173,17 @@ vector<double> MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
   // Initial value of the independent variables.
   // Should be 0 except for the initial values.
   Dvector vars(n_vars);
-  for (int i = 0; i < n_vars; i++) {
+  for (int i = 0; i < n_vars; i++)
+  {
     vars[i] = 0.0;
   }
+  //vars.clear();
   // Set the initial variable values
-  vars[x_start] = x;
-  vars[y_start] = y;
-  vars[psi_start] = psi;
-  vars[v_start] = v;
-  vars[cte_start] = cte;
+  vars[x_start]    = x;
+  vars[y_start]    = y;
+  vars[psi_start]  = psi;
+  vars[v_start]    = v;
+  vars[cte_start]  = cte;
   vars[epsi_start] = epsi;
 
   // Lower and upper limits for x
@@ -212,22 +217,23 @@ vector<double> MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
   // state indices.
   Dvector constraints_lowerbound(n_constraints);
   Dvector constraints_upperbound(n_constraints);
-  for (int i = 0; i < n_constraints; i++) {
+  for (int i = 0; i < n_constraints; i++)
+  {
     constraints_lowerbound[i] = 0;
     constraints_upperbound[i] = 0;
   }
-  constraints_lowerbound[x_start] = x;
-  constraints_lowerbound[y_start] = y;
-  constraints_lowerbound[psi_start] = psi;
-  constraints_lowerbound[v_start] = v;
-  constraints_lowerbound[cte_start] = cte;
+  constraints_lowerbound[x_start]    = x;
+  constraints_lowerbound[y_start]    = y;
+  constraints_lowerbound[psi_start]  = psi;
+  constraints_lowerbound[v_start]    = v;
+  constraints_lowerbound[cte_start]  = cte;
   constraints_lowerbound[epsi_start] = epsi;
 
-  constraints_upperbound[x_start] = x;
-  constraints_upperbound[y_start] = y;
-  constraints_upperbound[psi_start] = psi;
-  constraints_upperbound[v_start] = v;
-  constraints_upperbound[cte_start] = cte;
+  constraints_upperbound[x_start]    = x;
+  constraints_upperbound[y_start]    = y;
+  constraints_upperbound[psi_start]  = psi;
+  constraints_upperbound[v_start]    = v;
+  constraints_upperbound[cte_start]  = cte;
   constraints_upperbound[epsi_start] = epsi;
 
   // Object that computes objective and constraints
@@ -245,8 +251,15 @@ vector<double> MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
 
   // solve the problem
   CppAD::ipopt::solve<Dvector, FG_eval>(
-      options, vars, vars_lowerbound, vars_upperbound, constraints_lowerbound,
-      constraints_upperbound, fg_eval, solution);
+  /*options*/  options,                /*String: list of options \n terminated*/
+  /*xi*/       vars,                   /*Vector&: size equal to Nx. It specified the initial point where Ipopt starts the optimization*/
+  /*xl*/       vars_lowerbound,        /*Vector&: It specifies the lower limits for the constraint optimization problem */
+  /*xu*/       vars_upperbound,        /*Vector&: specifies the upper limits for the argument in the optimization problem */
+  /*gl*/       constraints_lowerbound, /*Vector&: specifies the lower limits for the constraints in the optimization problem */
+  /*gu*/       constraints_upperbound, /*Vector&: specifies the upper limits for the constraints in the optimization problem */
+  /*fg_eval*/  fg_eval,                /**/
+  /*solution*/ solution                /**/
+      );
 
   //
   // Check some of the solution values
@@ -278,17 +291,19 @@ double polyeval(Eigen::VectorXd coeffs, double x) {
 // Fit a polynomial.
 // Adapted from
 // https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
-Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
-                        int order) {
+Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals, int order)
+{
   assert(xvals.size() == yvals.size());
   assert(order >= 1 && order <= xvals.size() - 1);
   Eigen::MatrixXd A(xvals.size(), order + 1);
 
-  for (int i = 0; i < xvals.size(); i++) {
+  for (int i = 0; i < xvals.size(); i++)
+  {
     A(i, 0) = 1.0;
   }
 
-  for (int j = 0; j < xvals.size(); j++) {
+  for (int j = 0; j < xvals.size(); j++)
+  {
     for (int i = 0; i < order; i++) {
       A(j, i + 1) = A(j, i) * xvals(j);
     }
@@ -301,7 +316,7 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
 
 int main() {
   MPC mpc;
-  int iters = 50;
+  int iters = 150;
 
   Eigen::VectorXd ptsx(2);
   Eigen::VectorXd ptsy(2);
@@ -327,16 +342,17 @@ int main() {
   Eigen::VectorXd state(6);
   state << x, y, psi, v, cte, epsi;
 
-  std::vector<double> x_vals = {state[0]};
-  std::vector<double> y_vals = {state[1]};
-  std::vector<double> psi_vals = {state[2]};
-  std::vector<double> v_vals = {state[3]};
-  std::vector<double> cte_vals = {state[4]};
-  std::vector<double> epsi_vals = {state[5]};
+  std::vector<double> x_vals     = {state[0]};
+  std::vector<double> y_vals     = {state[1]};
+  std::vector<double> psi_vals   = {state[2]};
+  std::vector<double> v_vals     = {state[3]};
+  std::vector<double> cte_vals   = {state[4]};
+  std::vector<double> epsi_vals  = {state[5]};
   std::vector<double> delta_vals = {};
-  std::vector<double> a_vals = {};
+  std::vector<double> a_vals     = {};
 
-  for (size_t i = 0; i < iters; i++) {
+  for (size_t i = 0; i < iters; i++)
+  {
     std::cout << "Iteration " << i << std::endl;
 
     auto vars = mpc.Solve(state, coeffs);
@@ -367,6 +383,6 @@ int main() {
   plt::subplot(3, 1, 3);
   plt::title("Velocity");
   plt::plot(v_vals);
-
+  plt::grid("on");
   plt::show();
 }

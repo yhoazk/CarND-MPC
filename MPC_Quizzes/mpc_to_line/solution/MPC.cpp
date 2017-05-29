@@ -61,20 +61,23 @@ class FG_eval {
     fg[0] = 0;
 
     // The part of the cost based on the reference state.
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++)
+    {
       fg[0] += CppAD::pow(vars[cte_start + i] - ref_cte, 2);
       fg[0] += CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
       fg[0] += CppAD::pow(vars[v_start + i] - ref_v, 2);
     }
 
     // Minimize the use of actuators.
-    for (int i = 0; i < N - 1; i++) {
+    for (int i = 0; i < N - 1; i++)
+    {
       fg[0] += CppAD::pow(vars[delta_start + i], 2);
       fg[0] += CppAD::pow(vars[a_start + i], 2);
     }
 
     // Minimize the value gap between sequential actuations.
-    for (int i = 0; i < N - 2; i++) {
+    for (int i = 0; i < N - 2; i++)
+    {
       fg[0] += CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
       fg[0] += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
     }
@@ -97,7 +100,8 @@ class FG_eval {
     fg[1 + epsi_start] = vars[epsi_start];
 
     // The rest of the constraints
-    for (int i = 0; i < N - 1; i++) {
+    for (int i = 0; i < N - 1; i++)
+    {
       // The state at time t+1 .
       AD<double> x1 = vars[x_start + i + 1];
       AD<double> y1 = vars[y_start + i + 1];
@@ -170,9 +174,11 @@ vector<double> MPC::Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs) {
   // Initial value of the independent variables.
   // Should be 0 except for the initial values.
   Dvector vars(n_vars);
-  for (int i = 0; i < n_vars; i++) {
+  /*for (int i = 0; i < n_vars; i++)
+  {
     vars[i] = 0.0;
-  }
+  }*/
+  vars.clear();
   // Set the initial variable values
   vars[x_start] = x;
   vars[y_start] = y;
