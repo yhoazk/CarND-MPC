@@ -13,12 +13,16 @@ In this project instead of a PID controller a technique of [Model Predictive Con
 The Processing flow is roughly as follows:
 
 The simulator provides 6 points which are the route to follow:
+<br>
 ![](./res/flow.png)
 
+<br>
 
 The Model of the vehicle is as follows, it's only a kinematic model:
+<br>
 ![](./res/CodeCogsEqn.png)
 
+<br>
 
 The simulator provides with the next states:
 `x`: The position x relative to the map.
