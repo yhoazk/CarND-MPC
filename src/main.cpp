@@ -44,8 +44,8 @@ double polyeval(Eigen::VectorXd coeffs, double x) {
 // Fit a polynomial.
 // Adapted from
 // https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
-Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
-                        int order) {
+Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals, int order)
+{
   assert(xvals.size() == yvals.size());
   assert(order >= 1 && order <= xvals.size() - 1);
   Eigen::MatrixXd A(xvals.size(), order + 1);
@@ -107,14 +107,10 @@ int main()
           Eigen::VectorXd eigen_ptsy(ptsy.size());
 
           /* The points are feed in map coords, transform them into car coords */
-          mpc.coord_transform(ptsx, ptsy, px, py, psi);
+          Eigen::MatrixXd translated_pts = mpc.coord_transform(ptsx, ptsy, px, py, psi);
           //assert(1 == 0);
-          // TODO: There must be a better way to initialize
-          for (int i = 0; i < ptsx.size(); ++i)
-          {
-            eigen_ptsx[i] = ptsx[i];
-            eigen_ptsy[i] = ptsy[i];
-          }
+          eigen_ptsx = translated_pts.row(0);
+          eigen_ptsy = translated_pts.row(1);
           /* find the coefs that fit a 3rd order poly */
           coeffs = polyfit(eigen_ptsx, eigen_ptsy, 3);
           /* Evaluate the newly created poly */
@@ -125,14 +121,16 @@ int main()
 
           double cte = polyeval(coeffs, 0);
           double epsi = 0.0f - atan(double(coeffs[1]));
-
-          state << 0,0,0, v,cte,epsi;
+          /* As we rotated and translated all the points to set our coords as 0,0. x,y are always 0 */
+          state << 0.0f,0.0f,0.0f, v,cte,epsi;
 
           auto act =  mpc.Solve(state, coeffs);
 
 
           json msgJson;
-          msgJson["steering_angle"] = -act[0];
+          cout << "\nSteering Angle:" << -act[0]/ (0.436332f)  << endl;
+          cout << "\nThrottle:" << act[1]  << endl;
+          msgJson["steering_angle"] = -act[0]/ (0.436332f);
           msgJson["throttle"] = act[1];
 
           //Display the MPC predicted trajectory 
