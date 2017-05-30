@@ -6,7 +6,7 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 12;
+size_t N = 20;
 double dt = 0.05;
 
 // The solver takes all the state variables and actuator
@@ -36,7 +36,7 @@ const size_t a_start = delta_start + N - 1;
 const double Lf = 2.67;
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 40;
+double ref_v = 60;
 
 class FG_eval {
  public:
@@ -59,17 +59,21 @@ class FG_eval {
     }
 
     // Minimize the use of actuators.
+    /**
+     * By incrementing the cost of this variables the optimizer reduces the actuation ie.
+     * The car is more stable
+     */
     for (int i = 0; i < N - 1; i++)
     {
-      fg[0] += CppAD::pow(vars[delta_start + i], 2);
-      fg[0] += 50 * CppAD::pow(vars[a_start + i], 2);
+      fg[0] += 40 * CppAD::pow(vars[delta_start + i], 2);
+      fg[0] += 10 * CppAD::pow(vars[a_start + i], 2);
     }
 
     // Minimize the value gap between sequential actuations.
     for (int i = 0; i < N - 2; i++)
     {
-      fg[0] += 100*CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
-      fg[0] += 100*CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
+      fg[0] += CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+      fg[0] += 10*CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
     }
 
     //
@@ -153,10 +157,8 @@ Eigen::MatrixXd MPC::coord_transform(vector<double_t>& map_x,vector<double_t> ma
 
   for (int i = 0; i < map_x.size(); ++i)
   {
-  //  t_x.push_back(-(map_x[i] - veh_x) * sin_th + (map_y[i] - veh_y) * cos_th);
     tx_pts(0,i)= cos_th * (map_x[i] - veh_x) +  sin_th *(map_y[i] - veh_y);
     tx_pts(1,i)= -sin_th * (map_x[i] - veh_x) +  cos_th *(map_y[i] - veh_y);
-  //  t_y.push_back(-(map_x[i] - veh_x) * cos_th - (map_y[i] - veh_y) * sin_th);
   }
   /* copy the contents  */
   return tx_pts;
@@ -173,13 +175,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   double_t v    = state[3];
   double_t cte  = state[4];
   double_t epsi = state[5];
-  double_t dt = 0.1;
-  static  double_t delta_t1 = 0;
-  static double_t a_t1 = 0;
 
-
-
-  // TODO: Set the number of model variables (includes both states and inputs).
   // For example: If the state is a 4 element vector, the actuators is a 2
   // element vector and there are 10 timesteps. The number of variables is:
   //
@@ -203,22 +199,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   vars[v_start] = v;
   vars[cte_start] = cte;
   vars[epsi_start] = epsi;
-/*
-  double_t x_t = x + v * CppAD::cos(psi)*dt;
-  double_t y_t = y + v * CppAD::sin(psi)*dt;
-  double_t psi_t = psi + (v/Lf * (delta_t1 * dt));
-  double_t v_t = v + (a_t1 * dt);
-  double_t cte_t = cte + v * sin(epsi) * dt;
-  double_t epsi_t = epsi + v/Lf * (delta_t1 * dt);
-
-  x = x_t;
-  y = y_t;
-  psi = psi_t;
-  v = v_t;
-  cte = cte_t;
-  epsi = epsi_t;
-*/
-
 
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);

@@ -12,13 +12,8 @@ class MPC {
 
   virtual ~MPC();
 
-  // Both the reference cross track and orientation errors are 0.
-  // The reference velocity is set to 40 mph.
-  double ref_cte = 0;
-  double ref_epsi = 0;
-  double ref_v = 40;
-
-
+  vector<double> predicted_x;
+  vector<double> predicted_y;
 
   Eigen::MatrixXd coord_transform(vector<double_t>& map_x,vector<double_t> map_y, double_t veh_x, double_t veh_y, double_t veh_th);
 
