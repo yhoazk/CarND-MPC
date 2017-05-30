@@ -12,13 +12,11 @@ In this project instead of a PID controller a technique of [Model Predictive Con
  
 The Processing flow is roughly as follows:
 
-The simulator provides 6 points which are the route to follow:
-<br>
 ![](./res/flow.png)
 
 <br>
 
-The Model of the vehicle is as follows, it's only a kinematic model:
+The Model of the vehicle is as follows, it's only a kinematic model, then internal forces are not in this model:
 <br>
 ![](./res/CodeCogsEqn.png)
 
@@ -29,8 +27,11 @@ The simulator provides with the next states:<br>
 `y`: The position y relative to the map.<br>
 `v`: The current speed of te vehicle.<br>
 `psi`: The current steering angle.<br>
-`epsi`: The error between desired psi and current.<br>
 
+Calculated states:
+
+`epsi`: Error psi.<br>
+`cte`: Cross track error, this is given by evaluating the fitted polynomial at point `0`.
 ### Parameters:
 
 As in other projects there are parameters that can/must be tunned to improve performance.
