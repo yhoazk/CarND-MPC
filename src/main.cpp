@@ -1,9 +1,6 @@
 #include <math.h>
 #include <uWS/uWS.h>
-#include <chrono>
-#include <iostream>
 #include <thread>
-#include <vector>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "MPC.h"
@@ -94,23 +91,13 @@ int main()
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
           std::cout << "px: " << px;
-          /*
-          * TODO: Calculate steering angle and throttle using MPC.
-          *
-          * Both are in between [-1, 1].
-          *
-          */
-
           Eigen::VectorXd state(mpc.N_STATES);
           Eigen::VectorXd coeffs;
           Eigen::VectorXd eigen_ptsx(ptsx.size());
           Eigen::VectorXd eigen_ptsy(ptsy.size());
 
           /* The points are feed in map coords, transform them into car coords */
-          Eigen::MatrixXd translated_pts = mpc.coord_transform(ptsx, ptsy, px, py, psi);
-          //assert(1 == 0);
-          eigen_ptsx = translated_pts.row(0);
-          eigen_ptsy = translated_pts.row(1);
+          mpc.coord_transform(ptsx, ptsy, px, py, psi, eigen_ptsx, eigen_ptsy);
           /* find the coefs that fit a 3rd order poly */
           coeffs = polyfit(eigen_ptsx, eigen_ptsy, 3);
           /* Evaluate the newly created poly */
@@ -122,7 +109,7 @@ int main()
           double cte = polyeval(coeffs, 0);
           double epsi = 0.0f - atan(double(coeffs[1]));
           /* As we rotated and translated all the points to set our coords as 0,0. x,y are always 0 */
-          state << 0.0f,0.0f,0.0f, v,cte,epsi;
+          state << 0.0f, 0.0f, 0.0f, v, cte, epsi;
 
           auto act =  mpc.Solve(state, coeffs);
 
@@ -130,13 +117,11 @@ int main()
           json msgJson;
           cout << "\nSteering Angle:" << -act[0]/ (0.436332f)  << endl;
           cout << "\nThrottle:" << act[1]  << endl;
+          /* The steering is not [-1,1] and the solver gives the value with inverted sign in simulator -1 is left +1 rigth */
           msgJson["steering_angle"] = -act[0]/ (0.436332f);
           msgJson["throttle"] = act[1];
 
           //Display the MPC predicted trajectory 
-          vector<double> mpc_x_vals = ptsx;
-          vector<double> mpc_y_vals = ptsy;
-
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
@@ -144,8 +129,8 @@ int main()
           msgJson["mpc_y"] = mpc.predicted_y;
 
           //Display the waypoints/reference line
-          vector<double> next_x_vals = ptsx;
-          vector<double> next_y_vals = ptsy;
+          vector<double> next_x_vals(eigen_ptsx.data(), eigen_ptsx.data() + eigen_ptsx.size());
+          vector<double> next_y_vals(eigen_ptsy.data(), eigen_ptsy.data() + eigen_ptsy.size());
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line

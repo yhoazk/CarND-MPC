@@ -1,12 +1,10 @@
 #include "MPC.h"
 #include <cppad/cppad.hpp>
 #include <cppad/ipopt/solve.hpp>
-#include "Eigen-3.3/Eigen/Core"
 
 using CppAD::AD;
 
-// TODO: Set the timestep length and duration
-size_t N = 20;
+size_t N = 15;
 double dt = 0.05;
 
 // The solver takes all the state variables and actuator
@@ -36,7 +34,7 @@ const size_t a_start = delta_start + N - 1;
 const double Lf = 2.67;
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 60;
+double ref_v = 55;
 
 class FG_eval {
  public:
@@ -60,13 +58,12 @@ class FG_eval {
 
     // Minimize the use of actuators.
     /**
-     * By incrementing the cost of this variables the optimizer reduces the actuation ie.
-     * The car is more stable
+     * By multipplying the cost of the variables the optimizer converges to a better solution
      */
     for (int i = 0; i < N - 1; i++)
     {
       fg[0] += 40 * CppAD::pow(vars[delta_start + i], 2);
-      fg[0] += 10 * CppAD::pow(vars[a_start + i], 2);
+      fg[0] += CppAD::pow(vars[a_start + i], 2);
     }
 
     // Minimize the value gap between sequential actuations.
@@ -128,14 +125,12 @@ class FG_eval {
       // v_[t+1] = v[t] + a[t] * dt
       // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
       // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
-      fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
-      fg[2 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-      fg[2 + psi_start + i] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
-      fg[2 + v_start + i] = v1 - (v0 + a0 * dt);
-      fg[2 + cte_start + i] =
-          cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
-      fg[2 + epsi_start + i] =
-          epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+      fg[2 + x_start + i]    = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+      fg[2 + y_start + i]    = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+      fg[2 + psi_start + i]  = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+      fg[2 + v_start + i]    = v1 - (v0 + a0 * dt);
+      fg[2 + cte_start + i]  = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+      fg[2 + epsi_start + i] =  epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
     }
 
   }
@@ -148,26 +143,22 @@ MPC::MPC() {}
 MPC::~MPC() {}
 
 /* Translate the map coords to car coordinates */
-Eigen::MatrixXd MPC::coord_transform(vector<double_t>& map_x,vector<double_t> map_y, double_t veh_x, double_t veh_y, double_t veh_th)
+bool MPC::coord_transform(vector<double_t>& map_x,vector<double_t> map_y, double_t veh_x, double_t veh_y, double_t veh_th, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_y)
 {
   double cos_th = CppAD::cos(veh_th);
   double sin_th = CppAD::sin(veh_th);
-  Eigen::MatrixXd tx_pts = Eigen::MatrixXd(2, map_x.size());
-
 
   for (int i = 0; i < map_x.size(); ++i)
   {
-    tx_pts(0,i)= cos_th * (map_x[i] - veh_x) +  sin_th *(map_y[i] - veh_y);
-    tx_pts(1,i)= -sin_th * (map_x[i] - veh_x) +  cos_th *(map_y[i] - veh_y);
+    pts_x[i] = cos_th * (map_x[i] - veh_x) +  sin_th *(map_y[i] - veh_y);
+    pts_y[i] = -sin_th * (map_x[i] - veh_x) +  cos_th *(map_y[i] - veh_y);
   }
-  /* copy the contents  */
-  return tx_pts;
+  return true;
 }
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   bool ok = true;
   typedef CPPAD_TESTVECTOR(double) Dvector;
-
 
   double_t x    = state[0];
   double_t y    = state[1];
@@ -192,7 +183,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     vars[i] = 0;
   }
 
-
   vars[x_start] = x;
   vars[y_start] = y;
   vars[psi_start] = psi;
@@ -202,11 +192,11 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
-  // TODO: Set lower and upper limits for variables.
 
   // Set all non-actuators upper and lowerlimits
   // to the max negative and positive values.
-  for (int i = 0; i < delta_start; i++) {
+  for (int i = 0; i < delta_start; i++)
+  {
     vars_lowerbound[i] = -1.0e19;
     vars_upperbound[i] = 1.0e19;
   }
@@ -214,14 +204,16 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // The upper and lower limits of delta are set to -25 and 25
   // degrees (values in radians).
   // NOTE: Feel free to change this to something else.
-  for (int i = delta_start; i < a_start; i++) {
+  for (int i = delta_start; i < a_start; i++)
+  {
     vars_lowerbound[i] = -0.436332;
     vars_upperbound[i] = 0.436332;
   }
 
   // Acceleration/decceleration upper and lower limits.
   // NOTE: Feel free to change this to something else.
-  for (int i = a_start; i < n_vars; i++) {
+  for (int i = a_start; i < n_vars; i++)
+  {
     vars_lowerbound[i] = -1.0;
     vars_upperbound[i] = 1.0;
   }
@@ -232,7 +224,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // Should be 0 besides initial state.
   Dvector constraints_lowerbound(n_constraints);
   Dvector constraints_upperbound(n_constraints);
-  for (int i = 0; i < n_constraints; i++) {
+  for (int i = 0; i < n_constraints; i++)
+  {
     constraints_lowerbound[i] = 0;
     constraints_upperbound[i] = 0;
   }
@@ -302,6 +295,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
 
-  return {solution.x[delta_start+2],   solution.x[a_start+2]};
+  return {solution.x[delta_start+1],   solution.x[a_start+1]};
 
 }
