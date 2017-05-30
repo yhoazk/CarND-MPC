@@ -24,12 +24,12 @@ The Model of the vehicle is as follows, it's only a kinematic model:
 
 <br>
 
-The simulator provides with the next states:
-`x`: The position x relative to the map.
-`y`: The position y relative to the map.
-`v`: The current speed of te vehicle.
-`psi`: The current steering angle.
-`epsi`: The error between desired psi and current.
+The simulator provides with the next states:<br>
+`x`: The position x relative to the map.<br>
+`y`: The position y relative to the map.<br>
+`v`: The current speed of te vehicle.<br>
+`psi`: The current steering angle.<br>
+`epsi`: The error between desired psi and current.<br>
 
 ### Parameters:
 
@@ -45,6 +45,14 @@ constraint equation, in this case penalty factors for steering and acceleration 
 The factors are:
 * Steering: 40
 * Throttle: 10
+
+### Delay in model
+
+In this project a delay of 100 ms is added, this models the actual delay between sensor-processing-actuator response.
+This causes that the data we are measuring and for which we are calculating a response is already in the past, for this
+we need to predict the value that the car and the cross track error will have. To solve this situation the control action
+sent to the car is the action for the next state and not for the current one, also this delay is taken into account 
+in the `solve` procedure that minimizes the time between activations.
 
 
 
@@ -71,9 +79,6 @@ The factors are:
 2. Make a build directory: `mkdir build && cd build`
 3. Compile: `cmake .. && make`
 4. Run it: `./mpc`.
-
-## Tips:
-* For visualization this C++ [matplotlib wrapper](https://github.com/lava/matplotlib-cpp) could be helpful.
 
 
 
