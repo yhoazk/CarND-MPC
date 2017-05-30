@@ -62,7 +62,7 @@ class FG_eval {
      */
     for (int i = 0; i < N - 1; i++)
     {
-      fg[0] += 40 * CppAD::pow(vars[delta_start + i], 2);
+      fg[0] += 40 * CppAD::pow(vars[delta_start + i], 2); /* Add penalty factor for steering  */
       fg[0] += CppAD::pow(vars[a_start + i], 2);
     }
 
@@ -70,7 +70,7 @@ class FG_eval {
     for (int i = 0; i < N - 2; i++)
     {
       fg[0] += CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
-      fg[0] += 10*CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
+      fg[0] += 10*CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2); /* Add penalty factor for acceleration */
     }
 
     //
@@ -125,6 +125,21 @@ class FG_eval {
       // v_[t+1] = v[t] + a[t] * dt
       // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
       // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
+      /*
+       *
+       *  \newline
+          {x}'= x + v*(cos(\psi))dt
+          \newline
+          {y}'= y + v*(cos(\psi))dt
+          \newline
+          {\psi}' = \psi + (v/L_{f} * \Delta\varphi)dt
+          \newline
+          {v}' = v + a*dt
+          \newline
+          cte = f(x) - y + v(sin(e\psi))dt
+          \newline
+           e\psi = \psi - \psi_{des} + v(\Delta\varphi/L_{f} )dt
+       * */
       fg[2 + x_start + i]    = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
       fg[2 + y_start + i]    = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
       fg[2 + psi_start + i]  = psi1 - (psi0 + v0 * delta0 / Lf * dt);
@@ -172,7 +187,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // 4 * 10 + 2 * 9
   size_t n_vars = N_STATES * N + (N-1) * 2; // + 2 actuators
-  // TODO: Set the number of constraints
   size_t n_constraints = N * N_STATES;
 
   // Initial value of the independent variables.

@@ -5,6 +5,45 @@ Self-Driving Car Engineer Nanodegree Program
 
 ---
 
+## Description:
+
+In this project instead of a PID controller a technique of [Model Predictive Control](https://en.wikipedia.org/wiki/Model_predictive_control)
+ is being used, in this case the result is much better than the obtained with a PID controller.
+ 
+The Processing flow is roughly as follows:
+
+The simulator provides 6 points which are the route to follow:
+![](./res/flow.png)
+
+
+The Model of the vehicle is as follows, it's only a kinematic model:
+![](./res/CodeCogsEqn.png)
+
+
+The simulator provides with the next states:
+`x`: The position x relative to the map.
+`y`: The position y relative to the map.
+`v`: The current speed of te vehicle.
+`psi`: The current steering angle.
+`epsi`: The error between desired psi and current.
+
+### Parameters:
+
+As in other projects there are parameters that can/must be tunned to improve performance.
+ #### `N` and `dt`
+ This pair of parameters define the number of steps that the optimizer takes.
+ The bigger the N and smaller the dt more points are taked to find an optimal curve.
+ 
+#### Penalization paramters
+
+This parameters are multiplicative factors to **artificially** increase the effect of certain variable of the 
+constraint equation, in this case penalty factors for steering and acceleration are added. 
+The factors are:
+* Steering: 40
+* Throttle: 10
+
+
+
 ## Dependencies
 
 * cmake >= 3.5
@@ -33,7 +72,6 @@ Self-Driving Car Engineer Nanodegree Program
 * For visualization this C++ [matplotlib wrapper](https://github.com/lava/matplotlib-cpp) could be helpful.
 
 
-https://youtu.be/t4IuHc2queg
 
 
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/t4IuHc2queg/0.jpg)](https://www.youtube.com/watch?v=t4IuHc2queg)
